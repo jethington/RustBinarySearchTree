@@ -37,7 +37,6 @@ mod BST {
         None => (),
       }
       if value_present {
-        //self.remove_helper(target);
         let mut sub_nodes = (false, false);
         let mut early_return = false;
         match self.head {
@@ -125,54 +124,32 @@ mod BST {
     
     fn remove(&mut self, target: i32) {
       let sub_nodes;
-      let right;
-      {
-        let child: &mut Node;
-        if target > self.val {
-          right = true;
-          match self.right {
-            Some(ref mut n) => {
-              child = n;
-            }
-            None => {
-              unreachable!(); // note: only unreachable because I'm assuming the value exists
-            }
-          }
+      let right = target > self.val; // note that this line is already assuming the target exists
+      let child: &mut Option<Box<Node>> = if right {&mut self.right} else {&mut self.left};
+      
+      match child {
+        &mut Some(ref mut child_ref) => {
+          sub_nodes = match (&child_ref.left, &child_ref.right) {
+            (&None, &None) => (false, false),
+            (&Some(_), &None) => (true, false),
+            (&None, &Some(_)) => (false, true),
+            (&Some(_), &Some(_)) => (true, true),
+          };
         }
-        else {
-          right = false;
-          match self.left {
-            Some(ref mut n) => {
-              child = n;
-            }
-            None => {
-              unreachable!();
-            }
-          }
-        };  
-        
-        sub_nodes = match (&child.left, &child.right) {
-          (&None, &None) => (false, false),
-          (&Some(_), &None) => (true, false),
-          (&None, &Some(_)) => (false, true),
-          (&Some(_), &Some(_)) => (true, true),
-        };
+        &mut None => {
+          unreachable!();
+        }
       }
       
-      let child: &mut Option<Box<Node>> = if right {&mut self.right} else {&mut self.left};
       match sub_nodes {
         (false, false) => {
           *child = None;
         }
         (true, false) => {
           *child = child.take().unwrap().left; 
-          // note: take moves the option, leaving None in its place
-          //       this makes the borrow checker happy
         }
         (false, true) => {
           *child = child.take().unwrap().right;
-          //if right { self.right = self.right.take().unwrap().right; }
-          //else     { self.left = self.left.take().unwrap().right; } 
         }
         (true, true) => {
           match child {
@@ -343,7 +320,7 @@ fn test_equal() {
   let mut t2 = BST::Tree::new();
   
   // empty trees should compare equal
-  assert!(t1 == t2);
+  assert!(t1 == t2); // note: using assert_eq! is better?
   
   t1.add(3);
   assert!(t1 != t2);
