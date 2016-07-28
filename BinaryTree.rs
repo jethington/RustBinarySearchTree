@@ -57,7 +57,7 @@ mod BST {
             }
           }
           None => {
-            early_return = true;
+            early_return = true; // note: is this unreachable? self.head is None when value is present?
           }
         }
         if early_return { return self; }
@@ -124,102 +124,66 @@ mod BST {
     }
     
     fn remove(&mut self, target: i32) {
-      let mut sub_nodes = (false, false);
-      if target > self.val {
-        match self.right {
-          Some(ref mut n) => {
-            if n.val == target { 
-              // found it
-              sub_nodes = match (&n.left, &n.right) {
-                (&None, &None) => (false, false),
-                (&Some(_), &None) => (true, false),
-                (&None, &Some(_)) => (false, true),
-                (&Some(_), &Some(_)) => (true, true),
-              };
+      let sub_nodes;
+      let right;
+      {
+        let child: &mut Node;
+        if target > self.val {
+          right = true;
+          match self.right {
+            Some(ref mut n) => {
+              child = n;
             }
-            else { 
-              n.remove(target);
-              return;
+            None => {
+              unreachable!(); // note: only unreachable because I'm assuming the value exists
             }
-          }
-          None => {
-            unreachable!();
           }
         }
+        else {
+          right = false;
+          match self.left {
+            Some(ref mut n) => {
+              child = n;
+            }
+            None => {
+              unreachable!();
+            }
+          }
+        };  
         
-        // self = parent of node to remove
-        // self.right is present and the node to remove
-        match sub_nodes {
-          (false, false) => {
-            self.right = None;
-          }
-          (true, false) => {
-            // not sure what .take() is doing but it allows this to pass the borrow checker
-            self.right = self.right.take().unwrap().left;           
-          }
-          (false, true) => {
-            self.right = self.right.take().unwrap().right;
-          }
-          (true, true) => {
-            // promote a node from the sub tree
-            match self.right {
-              Some(ref mut to_remove) => {
-                to_remove.promote_replace();
-                to_remove.remove_swapped(target);
-              }
-              None => {
-                unreachable!();
-              }
-            }
-          }
-        }
+        sub_nodes = match (&child.left, &child.right) {
+          (&None, &None) => (false, false),
+          (&Some(_), &None) => (true, false),
+          (&None, &Some(_)) => (false, true),
+          (&Some(_), &Some(_)) => (true, true),
+        };
       }
       
-      // self = parent of node to remove
-      // self.left is present and the node to remove
-      else {
-        match self.left {
-          Some(ref mut n) => {
-            if n.val == target { 
-              // found it
-              sub_nodes = match (&n.left, &n.right) {
-                (&None, &None) => (false, false),
-                (&Some(_), &None) => (true, false),
-                (&None, &Some(_)) => (false, true),
-                (&Some(_), &Some(_)) => (true, true),
-              };
-            }
-            else { 
-              n.remove(target); 
-              return;
-            }
-          }
-          None => {
-            unreachable!();
-          } 
+      let child: &mut Option<Box<Node>> = if right {&mut self.right} else {&mut self.left};
+      match sub_nodes {
+        (false, false) => {
+          *child = None;
         }
-        match sub_nodes {
-          (false, false) => {
-            self.left = None;
-          }
-          (true, false) => {
-            self.left = self.left.take().unwrap().left;
-          }
-          (false, true) => {
-            self.left = self.left.take().unwrap().right;
-          }
-          (true, true) => {
-            // promote a node from the sub tree
-            match self.left {
-              Some(ref mut to_remove) => {
-                to_remove.promote_replace();
-                to_remove.remove_swapped(target);
-              }
-              None => {
-                unreachable!();
-              }
+        (true, false) => {
+          *child = child.take().unwrap().left; 
+          // note: take moves the option, leaving None in its place
+          //       this makes the borrow checker happy
+        }
+        (false, true) => {
+          *child = child.take().unwrap().right;
+          //if right { self.right = self.right.take().unwrap().right; }
+          //else     { self.left = self.left.take().unwrap().right; } 
+        }
+        (true, true) => {
+          match child {
+            &mut Some(ref mut to_remove) => {
+              to_remove.promote_replace();
+              to_remove.remove_swapped(target);
             }
-          }
+            &mut None => {
+              unreachable!();
+            }
+          } 
         }
       }
     }
@@ -481,6 +445,6 @@ fn main() {
   t.print();
   println!("test");
   t.remove(0)
-    .remove(10);
+   .remove(10);
   t.print();
 }
