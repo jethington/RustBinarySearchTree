@@ -91,7 +91,7 @@ mod BST {
     fn remove_swapped(&mut self, target: i32) {
       match self.head {
         Some(ref mut n) => {
-          n.remove_swapped_head(target);
+          n.remove_swapped(target);
         }
         None => {
           unreachable!();
@@ -186,24 +186,6 @@ mod BST {
       // no left sub-nodes if you get here, since they would have been lower and therefore swapped in instead
       // if the node-to-remove has a right sub-node, grab it
       // if not, then this code does no harm
-      self.right = self.right.take().unwrap().right;
-    }
-    
-    fn remove_swapped_head(&mut self, target: i32) {
-      match self.right {
-        Some(ref mut r) => {
-          if r.val == target { 
-            // found it, don't return
-          }
-          else { 
-            r.remove(target);
-            return;
-          }
-        }
-        None => {
-          unreachable!();
-        }
-      }
       self.right = self.right.take().unwrap().right;
     }
     
