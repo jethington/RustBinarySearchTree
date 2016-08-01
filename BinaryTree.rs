@@ -59,7 +59,9 @@ mod BST {
             early_return = true; // note: is this unreachable? self.head is None when value is present?
           }
         }
+        
         if early_return { return self; }
+        
         match sub_nodes {
           (false, false) => {
             self.head = None;
@@ -71,15 +73,7 @@ mod BST {
             self.head = Some(self.head.take().unwrap().right.unwrap());
           }
           (true, true) => {
-            // promote a node from the sub tree
-            match self.head {
-              Some(ref mut to_remove) => {
-                to_remove.promote_replace();
-              }
-              None => {
-                unreachable!();
-              }
-            }
+            self.head.as_mut().unwrap().promote_replace();
             self.remove_swapped(target); // now that the values are swapped, remove the correct node
           }
         }
@@ -152,15 +146,8 @@ mod BST {
           *child = child.take().unwrap().right;
         }
         (true, true) => {
-          match child {
-            &mut Some(ref mut to_remove) => {
-              to_remove.promote_replace();
-              to_remove.remove_swapped(target);
-            }
-            &mut None => {
-              unreachable!();
-            }
-          } 
+          child.as_mut().unwrap().promote_replace();
+          child.as_mut().unwrap().remove_swapped(target); // now that the values are swapped, remove the correct node
         }
       }
     }
