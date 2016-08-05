@@ -29,56 +29,7 @@ mod BST {
     }
     
     pub fn remove(&mut self, target: i32) -> &mut Tree {
-      let mut value_present = false;
-      match self.head {
-        Some(ref mut n) => {
-          value_present = n.search(target);
-        }
-        None => (),
-      }
-      if value_present {
-        let mut sub_nodes = (false, false);
-        let mut early_return = false;
-        match self.head {
-          Some(ref mut n) => {
-            if n.val == target {
-              // need to remove the head
-              sub_nodes = match (&n.left, &n.right) {
-                (&None, &None) => (false, false),
-                (&Some(_), &None) => (true, false),
-                (&None, &Some(_)) => (false, true),
-                (&Some(_), &Some(_)) => (true, true),
-              };
-            }
-            else {
-              n.remove(target);
-              early_return = true;
-            }
-          }
-          None => {
-            early_return = true; // note: is this unreachable? self.head is None when value is present?
-          }
-        }
-        
-        if early_return { return self; }
-        
-        match sub_nodes {
-          (false, false) => {
-            self.head = None;
-          }
-          (true, false) => {
-            self.head = Some(self.head.take().unwrap().left.unwrap());       
-          }
-          (false, true) => {
-            self.head = Some(self.head.take().unwrap().right.unwrap());
-          }
-          (true, true) => {
-            self.head.as_mut().unwrap().promote_replace();
-            self.remove_swapped(target); // now that the values are swapped, remove the correct node
-          }
-        }
-        
-      }
+      self.head.foo(target);
       self
     }
     
@@ -280,7 +231,54 @@ mod BST {
       }
     }
   }
-
+  
+  trait Foo {
+    fn foo(&mut self, target: i32);
+  }
+  
+  impl Foo for Option<Box<Node>> {
+    fn foo(&mut self, target: i32) {
+      let sub_nodes;
+      match *self {
+        Some(ref mut node_ref) => {
+          if target < node_ref.val {
+            node_ref.left.foo(target);
+            return;
+          }
+          else if target > node_ref.val {
+            node_ref.right.foo(target);
+            return;
+          }
+          else {
+            // found the target, need to remove it
+            sub_nodes = match (&node_ref.left, &node_ref.right) {
+              (&None, &None) => (false, false),
+              (&Some(_), &None) => (true, false),
+              (&None, &Some(_)) => (false, true),
+              (&Some(_), &Some(_)) => (true, true),
+            };
+          }
+        },
+        None => return, // think this means it is safe even if there is no target to remove
+      }
+      match sub_nodes {
+        (false, false) => {
+          *self = None; 
+        }
+        (true, false) => {
+          *self = self.take().unwrap().left;
+        }
+        (false, true) => {
+          *self = self.take().unwrap().right;
+        }
+        (true, true) => {
+          self.as_mut().unwrap().promote_replace();
+          self.as_mut().unwrap().remove_swapped(target);
+        }
+      }
+    }
+  }
+  
 }
 
 #[test]
