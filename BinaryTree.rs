@@ -1,6 +1,6 @@
-use std::cmp::PartialEq;
-
 mod BST {
+
+  use std::cmp::PartialEq;
 
   pub struct Tree {
     head: Option<Box<Node>>,
@@ -29,19 +29,8 @@ mod BST {
     }
     
     pub fn remove(&mut self, target: i32) -> &mut Tree {
-      self.head.foo(target);
+      self.head.remove(target);
       self
-    }
-    
-    fn remove_swapped(&mut self, target: i32) {
-      match self.head {
-        Some(ref mut n) => {
-          n.remove_swapped(target);
-        }
-        None => {
-          unreachable!();
-        }
-      }
     }
     
     pub fn print(&self) {
@@ -65,66 +54,6 @@ mod BST {
         left: None,
         right: None,
       }
-    }
-    
-    fn remove(&mut self, target: i32) {
-      let sub_nodes;
-      let right = target > self.val; // note that this line is already assuming the target exists
-      let child: &mut Option<Box<Node>> = if right {&mut self.right} else {&mut self.left};
-      
-      match child {
-        &mut Some(ref mut child_ref) => {
-          sub_nodes = match (&child_ref.left, &child_ref.right) {
-            (&None, &None) => (false, false),
-            (&Some(_), &None) => (true, false),
-            (&None, &Some(_)) => (false, true),
-            (&Some(_), &Some(_)) => (true, true),
-          };
-        }
-        &mut None => {
-          unreachable!();
-        }
-      }
-      
-      match sub_nodes {
-        (false, false) => {
-          *child = None;
-        }
-        (true, false) => {
-          *child = child.take().unwrap().left; 
-        }
-        (false, true) => {
-          *child = child.take().unwrap().right;
-        }
-        (true, true) => {
-          child.as_mut().unwrap().promote_replace();
-          child.as_mut().unwrap().remove_swapped(target); // now that the values are swapped, remove the correct node
-        }
-      }
-    }
-    
-    // need this function because after a swap, you need to go right once, then left,
-    // even though the target is less than the current node
-    fn remove_swapped(&mut self, target: i32) {
-      match self.right {
-        Some(ref mut n) => {
-          if n.val == target { 
-            // found it, don't return
-          }
-          else { 
-            n.remove(target);
-            return;
-          }
-        }
-        None => {
-          unreachable!();
-        }
-      }
-      
-      // no left sub-nodes if you get here, since they would have been lower and therefore swapped in instead
-      // if the node-to-remove has a right sub-node, grab it
-      // if not, then this code does no harm
-      self.right = self.right.take().unwrap().right;
     }
     
     // figure out which value in this sub-tree to promote, and then swap values with that node
@@ -232,21 +161,21 @@ mod BST {
     }
   }
   
-  trait Foo {
-    fn foo(&mut self, target: i32);
+  trait Remove {
+    fn remove(&mut self, target: i32);
   }
   
-  impl Foo for Option<Box<Node>> {
-    fn foo(&mut self, target: i32) {
+  impl Remove for Option<Box<Node>> {
+    fn remove(&mut self, target: i32) {
       let sub_nodes;
       match *self {
         Some(ref mut node_ref) => {
           if target < node_ref.val {
-            node_ref.left.foo(target);
+            node_ref.left.remove(target);
             return;
           }
           else if target > node_ref.val {
-            node_ref.right.foo(target);
+            node_ref.right.remove(target);
             return;
           }
           else {
@@ -263,7 +192,7 @@ mod BST {
       }
       match sub_nodes {
         (false, false) => {
-          *self = None; 
+          *self = None;
         }
         (true, false) => {
           *self = self.take().unwrap().left;
@@ -273,12 +202,11 @@ mod BST {
         }
         (true, true) => {
           self.as_mut().unwrap().promote_replace();
-          self.as_mut().unwrap().remove_swapped(target);
+          self.as_mut().unwrap().right.remove(target);
         }
-      }
+      } 
     }
   }
-  
 }
 
 #[test]
@@ -387,6 +315,7 @@ fn main() {
    .add(13)
    .add(0);
   t.print();
+  t.search(13);
   println!("test");
   t.remove(0)
    .remove(10);
